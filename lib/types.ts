@@ -1,9 +1,18 @@
 export interface CoachProfile {
   id: string;
   username: string;
+  fullName?: string;
   profilePicture: string;
   bio?: string;
-  followerCount: number;
+  biography?: string;
+  externalUrls?: string;
+  followersCount: number;
+  followsCount: number;
+  postsCount: number;
+  isBusinessAccount: boolean;
+  isProfessionalAccount: boolean;
+  profilePicUrl?: string;
+  profilePicUrlHD?: string;
   niche: string;
   verified: boolean;
 }
@@ -28,4 +37,4 @@ export const NICHES = [
   'Entrepreneurship',
 ] as const;
 
-export type Niche = typeof NICHES[number];
+export type Niche = (typeof NICHES)[number];

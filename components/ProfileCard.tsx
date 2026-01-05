@@ -2,7 +2,6 @@ import { CoachProfile } from '@/lib/types';
 import { formatFollowerCount } from '@/lib/utils';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, BadgeCheck } from 'lucide-react';
@@ -27,6 +26,13 @@ export default function ProfileCard({ profile }: ProfileCardProps) {
   };
 
   const avatarColor = getAvatarColor(profile.id);
+  const originalProfilePicUrl =
+    profile.profilePicUrlHD || profile.profilePicUrl || profile.profilePicture;
+  // Use proxy route to bypass CORS issues
+  const profilePicUrl = originalProfilePicUrl
+    ? `/api/image-proxy?url=${encodeURIComponent(originalProfilePicUrl)}`
+    : null;
+  const instagramUrl = `https://www.instagram.com/${profile.username}/`;
 
   return (
     <Card className='group overflow-hidden transition-all duration-300 hover:shadow-md hover:border-primary/20 hover:-translate-y-0.5 border-transparent py-0'>
@@ -34,16 +40,36 @@ export default function ProfileCard({ profile }: ProfileCardProps) {
         <div className='flex items-center gap-4'>
           {/* Avatar */}
           <div className='relative shrink-0'>
-            <Avatar className='h-14 w-14'>
-              <AvatarFallback
-                className={`${avatarColor} text-xl font-bold transition-transform group-hover:scale-105`}
+            <div className='relative h-14 w-14 rounded-full overflow-hidden'>
+              {profilePicUrl ? (
+                <img
+                  src={profilePicUrl}
+                  alt={`${profile.username}'s profile picture`}
+                  className='h-full w-full object-cover'
+                  referrerPolicy='no-referrer'
+                  loading='lazy'
+                  onError={(e) => {
+                    // Fallback to colored initial if image fails to load
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling as HTMLElement;
+                    if (fallback) {
+                      fallback.style.display = 'flex';
+                    }
+                  }}
+                />
+              ) : null}
+              <div
+                className={`${avatarColor} text-xl font-bold transition-transform group-hover:scale-105 h-full w-full flex items-center justify-center text-white ${
+                  profilePicUrl ? 'hidden' : 'flex'
+                }`}
               >
                 {profile.username.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+              </div>
+            </div>
 
             {profile.verified && (
-              <div className='absolute -bottom-0.5 -right-0.5 h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center ring-2 ring-background'>
+              <div className='absolute -bottom-0.5 -right-0.5 h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center ring-2 ring-background z-10'>
                 <BadgeCheck className='h-4 w-4 text-white' />
               </div>
             )}
@@ -59,7 +85,7 @@ export default function ProfileCard({ profile }: ProfileCardProps) {
             </div>
 
             <p className='text-sm text-muted-foreground mt-1'>
-              {formatFollowerCount(profile.followerCount)} followers
+              {formatFollowerCount(profile.followersCount)} followers
             </p>
           </div>
         </div>
@@ -75,7 +101,9 @@ export default function ProfileCard({ profile }: ProfileCardProps) {
             variant='outline'
           >
             <Link
-              href={''}
+              href={instagramUrl}
+              target='_blank'
+              rel='noopener noreferrer'
               className='w-full justify-between hover:bg-primary/10'
             >
               <span>View Profile</span>

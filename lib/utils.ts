@@ -40,7 +40,7 @@ export function filterCoaches(
     // Min followers filter
     if (
       filters.minFollowers > 0 &&
-      coach.followerCount < filters.minFollowers
+      coach.followersCount < filters.minFollowers
     ) {
       return false;
     }
@@ -48,7 +48,7 @@ export function filterCoaches(
     // Max followers filter
     if (
       filters.maxFollowers > 0 &&
-      coach.followerCount > filters.maxFollowers
+      coach.followersCount > filters.maxFollowers
     ) {
       return false;
     }
@@ -64,7 +64,7 @@ export function exportToCSV(coaches: CoachProfile[]) {
   const csvRows = coaches.map((coach) => [
     coach.username,
     coach.niche,
-    coach.followerCount,
+    coach.followersCount,
     coach.verified ? 'Yes' : 'No',
   ]);
 
