@@ -1,8 +1,9 @@
 'use client';
 
 import Logo from './Logo';
-import { HeadphonesIcon } from 'lucide-react';
+import { BookmarkCheckIcon, FileBadge, HeadphonesIcon } from 'lucide-react';
 import { Button } from './ui/button';
+import Link from 'next/link';
 
 export default function TopBar() {
   return (
@@ -12,15 +13,53 @@ export default function TopBar() {
           {/* Logo */}
           <Logo />
 
-          {/* Support Button */}
-          <Button
-            variant='outline'
-            size='sm'
-            className='flex items-center gap-2 bg-card/50 backdrop-blur-sm hover:bg-primary/10 border-border/50'
-          >
-            <HeadphonesIcon className='h-4 w-4' />
-            <span className='hidden sm:inline'>Support</span>
-          </Button>
+          <div className='flex items-center gap-2'>
+            {/* Find Offers */}
+            <Button
+              asChild
+              variant='outline'
+              size='sm'
+              className='flex items-center gap-2 bg-card/50 backdrop-blur-sm hover:bg-primary/10 border-border/50'
+            >
+              <Link
+                href={'/'}
+                className='flex items-center gap-2'
+              >
+                <FileBadge className='h-4 w-4' />
+                <span className='hidden md:inline'>Find Offers</span>
+              </Link>
+            </Button>
+
+            {/* Saved Offers Button */}
+            <Button
+              variant='outline'
+              size='sm'
+              className='flex items-center gap-2 bg-card/50 backdrop-blur-sm hover:bg-primary/10 border-border/50'
+            >
+              <Link
+                href={'/saved'}
+                className='flex items-center gap-2'
+              >
+                <BookmarkCheckIcon className='h-4 w-4' />
+                <span className='hidden md:inline'>Saved Offers</span>
+              </Link>
+            </Button>
+
+            {/* Support Button */}
+            <Button
+              variant='outline'
+              size='sm'
+              className='flex items-center gap-2 bg-card/50 backdrop-blur-sm hover:bg-primary/10 border-border/50'
+            >
+              <Link
+                href={'#'}
+                className='flex items-center gap-2'
+              >
+                <HeadphonesIcon className='h-4 w-4' />
+                <span className='hidden md:inline'>Support</span>
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
     </header>

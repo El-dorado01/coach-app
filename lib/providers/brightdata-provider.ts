@@ -470,4 +470,245 @@ export class BrightDataProvider implements InstagramProvider {
 
     return profiles;
   }
+
+  /**
+   * Trigger asynchronous batch fetch for multiple URLs
+   * Returns snapshot ID for tracking progress
+   */
+  async fetchProfilesByUrlBatch(urls: string[]): Promise<string> {
+    try {
+      // Format URLs for Bright Data API
+      const input = urls.map((url) => ({ url }));
+
+      // console.log('Triggering batch fetch for URLs Inputssss:', input);
+      const data = JSON.stringify({
+        input,
+      });
+
+      // const data = JSON.stringify({
+      //   input: [
+      //     { url: 'https://www.instagram.com/cats_of_world_/' },
+      //     { url: 'https://www.instagram.com/dogsofinstagram/' },
+      //     { url: 'https://www.instagram.com/zoobarcelona' },
+      //     { url: 'https://www.instagram.com/australiazoo' },
+      //   ],
+      // });
+
+      // console.log('Triggering batch fetch for URLs Inputssss:', data);
+
+      // fetch(
+      //   'https://api.brightdata.com/datasets/v3/trigger?dataset_id=gd_l1vikfch901nx3by4&notify=false&include_errors=true',
+      //   {
+      //     method: 'POST',
+      //     headers: {
+      //       Authorization: `Bearer ${this.apiKey}`,
+      //       'Content-Type': 'application/json',
+      //     },
+      //     body: data,
+      //   }
+      // )
+      //   .then((response) => response.json())
+      //   .then((data) => console.log(data))
+      //   .catch((error) => console.error('Error:', error));
+
+
+      const response = await fetch(
+        `https://api.brightdata.com/datasets/v3/trigger?dataset_id=${this.datasetId}&notify=false&include_errors=true`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: data,
+        }
+      );
+
+      // console.log('Response:', response);
+
+      const responseText = await response.text();
+
+      if (!response.ok) {
+        let errorMessage = `API error: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage =
+            errorData.message ||
+            errorData.error ||
+            errorData.detail ||
+            errorMessage;
+          console.error('Bright Data batch trigger error:', errorData);
+        } catch {
+          console.error('Bright Data batch trigger error (raw):', responseText);
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Parse response to get snapshot ID
+      let responseData: any;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (error) {
+        console.error('Failed to parse Bright Data response:', responseText);
+        throw new Error('Invalid JSON response from Bright Data API');
+      }
+
+      // Extract snapshot ID from response
+      const snapshotId = responseData.snapshot_id || responseData.id;
+      if (!snapshotId) {
+        console.error('No snapshot ID in response:', responseData);
+        throw new Error('No snapshot ID returned from batch trigger');
+      }
+
+      console.log(`Batch job triggered with snapshot ID: ${snapshotId}`);
+      return snapshotId;
+    } catch (error) {
+      console.error('Error triggering batch fetch:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check the status of an asynchronous batch job
+   */
+  async getSnapshotStatus(snapshotId: string): Promise<{
+    status: 'running' | 'ready' | 'failed';
+    progress?: number;
+    total?: number;
+  }> {
+    try {
+      const response = await fetch(
+        `https://api.brightdata.com/datasets/v3/progress/${snapshotId}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to get snapshot status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Map Bright Data status to our status
+      let status: 'running' | 'ready' | 'failed' = 'running';
+      if (data.status === 'ready' || data.status === 'complete') {
+        status = 'ready';
+      } else if (data.status === 'failed' || data.status === 'error') {
+        status = 'failed';
+      }
+
+      return {
+        status,
+        progress: data.num_of_records || 0,
+        total: data.total_rows || 0,
+      };
+    } catch (error) {
+      console.error('Error checking snapshot status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieve completed batch data
+   */
+  async getSnapshotData(snapshotId: string): Promise<CoachProfile[]> {
+    try {
+      const response = await fetch(
+        `https://api.brightdata.com/datasets/v3/snapshot/${snapshotId}?format=json`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to get snapshot data: ${response.status}`);
+      }
+
+      const responseText = await response.text();
+      let data: any[];
+
+      try {
+        data = JSON.parse(responseText);
+      } catch (error) {
+        console.error('Failed to parse snapshot data:', responseText);
+        throw new Error('Invalid JSON response from snapshot data');
+      }
+
+      if (!Array.isArray(data)) {
+        console.error('Snapshot data is not an array:', data);
+        throw new Error('Invalid snapshot data format');
+      }
+
+      // Map each item to CoachProfile
+      const profiles: CoachProfile[] = [];
+      for (const item of data) {
+        const profileData = item as BrightDataResponse;
+
+        // Skip private accounts
+        if (profileData.is_private) {
+          continue;
+        }
+
+        // Check if account is German
+        if (!isGermanAccount(profileData.biography, profileData.full_name)) {
+          continue;
+        }
+
+        // Map to CoachProfile
+        const detectedNiche = detectNicheFromBio(
+          profileData.biography,
+          profileData.full_name
+        );
+
+        let profilePicUrl: string | undefined;
+        if (profileData.profile_image_link) {
+          profilePicUrl = profileData.profile_image_link.replace(/\*/g, '');
+          if (!profilePicUrl.startsWith('http')) {
+            profilePicUrl = undefined;
+          }
+        }
+
+        const extractedUsername = profileData.account
+          ? profileData.account.replace(/\*/g, '')
+          : '';
+
+        if (!extractedUsername) {
+          continue; // Skip if no username
+        }
+
+        const profile: CoachProfile = {
+          id: profileData.id || extractedUsername,
+          username: extractedUsername,
+          fullName: profileData.full_name,
+          profilePicture: profilePicUrl || '',
+          bio: profileData.biography,
+          biography: profileData.biography,
+          externalUrls: profileData.external_url?.[0],
+          followersCount: profileData.followers || 0,
+          followsCount: profileData.following || 0,
+          postsCount: profileData.posts_count || 0,
+          isBusinessAccount: profileData.is_business_account || false,
+          isProfessionalAccount: profileData.is_professional_account || false,
+          profilePicUrl: profilePicUrl,
+          niche: detectedNiche,
+          verified: profileData.is_verified || false,
+        };
+
+        profiles.push(profile);
+      }
+
+      console.log(`Processed ${profiles.length} profiles from snapshot`);
+      return profiles;
+    } catch (error) {
+      console.error('Error retrieving snapshot data:', error);
+      throw error;
+    }
+  }
 }
