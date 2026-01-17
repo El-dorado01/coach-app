@@ -13,7 +13,7 @@ import { PRELOAD_INSTAGRAM_URLS } from '@/lib/data';
 import { ProfileCache } from '@/lib/cache';
 import { cn } from '@/lib/utils';
 
-const ITEMS_PER_PAGE = 12;
+const ITEMS_PER_PAGE = 100;
 const MIN_PROFILES_TO_SHOW = 12; // Show page as soon as we have this many profiles
 const CACHE_KEY_PRELOAD = 'preload_batch_v4'; // Invalidate old cache to force DB population
 
