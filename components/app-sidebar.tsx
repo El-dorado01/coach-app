@@ -4,7 +4,6 @@ import * as React from 'react';
 import {
   BookmarkCheckIcon,
   Cog,
-  Command,
   FileBadge,
   GraduationCap,
   LayoutDashboard,
@@ -27,13 +26,9 @@ import {
 import Link from 'next/link';
 import Logo from './Logo';
 import { NavOffers } from './nav-offers';
+import { useEffect, useState } from 'react';
 
 const data = {
-  user: {
-    name: 'shadcn',
-    email: 'm@example.com',
-    avatar: '/avatars/shadcn.jpg',
-  },
   navMain: [
     {
       title: 'Dashboard',
@@ -76,6 +71,34 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const [user, setUser] = useState({
+    name: 'Loading...',
+    email: '',
+    avatar: '',
+  });
+
+  useEffect(() => {
+    // Fetch user session on client side
+    fetch('/api/auth/session')
+      .then((res) => res.json())
+      .then((session) => {
+        if (session?.user) {
+          setUser({
+            name: session.user.name || 'User',
+            email: session.user.email || '',
+            avatar: session.user.image || '',
+          });
+        }
+      })
+      .catch(() => {
+        setUser({
+          name: 'Guest',
+          email: '',
+          avatar: '',
+        });
+      });
+  }, []);
+
   return (
     <Sidebar
       variant='inset'
@@ -91,13 +114,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <Link href='#'>
                 {/* Logo */}
                 <Logo />
-                {/* <div className='bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg'>
-                  <Command className='size-4' />
-                </div>
-                <div className='grid flex-1 text-left text-sm leading-tight'>
-                  <span className='truncate font-medium'>Acme Inc</span>
-                  <span className='truncate text-xs'>Enterprise</span>
-                </div> */}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -113,7 +129,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   );
