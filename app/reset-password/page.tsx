@@ -1,5 +1,6 @@
 import { ResetPasswordForm } from '@/components/reset-password-form';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import Logo from '@/components/Logo';
 
 export default function ResetPasswordPage() {
@@ -12,7 +13,9 @@ export default function ResetPasswordPage() {
         >
           <Logo />
         </Link>
-        <ResetPasswordForm />
+        <Suspense>
+          <ResetPasswordForm />
+        </Suspense>
       </div>
     </div>
   );
