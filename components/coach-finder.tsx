@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 
 const ITEMS_PER_PAGE = 100;
 const MIN_PROFILES_TO_SHOW = 12; // Show page as soon as we have this many profiles
-const CACHE_KEY_PRELOAD = 'preload_batch_v4'; // Invalidate old cache to force DB population
+const CACHE_KEY_PRELOAD = 'preload_batch_v1'; // Invalidate old cache to force DB population
 
 interface CoachFinderProps {
   className?: string;

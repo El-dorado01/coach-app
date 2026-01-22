@@ -1,6 +1,7 @@
 import { InstagramProvider } from './base-provider';
 import { CoachProfile } from '../types';
 import { isGermanAccount, detectNicheFromBio } from '../instagram-api';
+import { uploadProfilePicture } from '../storage';
 
 /**
  * Bright Data API Response Interface
@@ -83,7 +84,7 @@ export class BrightDataProvider implements InstagramProvider {
         // If profile is partial, we treat it as missing/stale because we need full data
         if (existingProfile.isPartial) {
           console.log(
-            `Cached profile for ${username} is partial, fetching full data...`
+            `Cached profile for ${username} is partial, fetching full data...`,
           );
         } else {
           const sixMonthsAgo = new Date();
@@ -109,7 +110,7 @@ export class BrightDataProvider implements InstagramProvider {
           body: JSON.stringify({
             input: [{ user_name: username }],
           }),
-        }
+        },
       );
 
       // Read response text first (can only read once)
@@ -184,7 +185,7 @@ export class BrightDataProvider implements InstagramProvider {
         console.warn(
           `Unexpected response format for ${username}:`,
           typeof responseData,
-          Object.keys(responseData || {})
+          Object.keys(responseData || {}),
         );
         return null;
       }
@@ -207,7 +208,7 @@ export class BrightDataProvider implements InstagramProvider {
       // Map Bright Data response to CoachProfile
       const detectedNiche = detectNicheFromBio(
         profileData.biography,
-        profileData.full_name
+        profileData.full_name,
       );
 
       // Extract profile image URL (may be obfuscated in response)
@@ -215,10 +216,10 @@ export class BrightDataProvider implements InstagramProvider {
       let profilePicUrl: string | undefined;
       if (profileData.profile_image_link) {
         // Try to reconstruct URL by replacing asterisks
-        profilePicUrl = profileData.profile_image_link.replace(/\*/g, '');
+        const tempUrl = profileData.profile_image_link.replace(/\*/g, '');
         // If still invalid, try to get from profile_url
-        if (!profilePicUrl.startsWith('http')) {
-          profilePicUrl = undefined;
+        if (tempUrl.startsWith('http')) {
+          profilePicUrl = tempUrl;
         }
       }
 
@@ -227,11 +228,40 @@ export class BrightDataProvider implements InstagramProvider {
         ? profileData.account.replace(/\*/g, '')
         : username;
 
+      // Upload profile picture to Supabase Storage for permanent URL
+      let permanentProfilePicUrl: string | undefined;
+      if (profilePicUrl) {
+        try {
+          const uploadedUrl = await uploadProfilePicture(
+            profilePicUrl,
+            extractedUsername,
+          );
+          if (uploadedUrl) {
+            permanentProfilePicUrl = uploadedUrl;
+            console.log(
+              `Uploaded profile picture for ${extractedUsername} to Supabase Storage`,
+            );
+          } else {
+            // Fallback to original URL if upload fails
+            permanentProfilePicUrl = profilePicUrl;
+            console.warn(
+              `Failed to upload profile picture for ${extractedUsername}, using original URL`,
+            );
+          }
+        } catch (error) {
+          console.error(
+            `Error uploading profile picture for ${extractedUsername}:`,
+            error,
+          );
+          permanentProfilePicUrl = profilePicUrl; // Fallback
+        }
+      }
+
       const mainProfile: CoachProfile = {
         id: profileData.id || username,
         username: extractedUsername || username,
         fullName: profileData.full_name,
-        profilePicture: profilePicUrl || '',
+        profilePicture: permanentProfilePicUrl || '',
         bio: profileData.biography,
         biography: profileData.biography,
         externalUrls: profileData.external_url?.[0],
@@ -240,7 +270,7 @@ export class BrightDataProvider implements InstagramProvider {
         postsCount: profileData.posts_count || 0,
         isBusinessAccount: profileData.is_business_account || false,
         isProfessionalAccount: profileData.is_professional_account || false,
-        profilePicUrl: profilePicUrl,
+        profilePicUrl: permanentProfilePicUrl,
         niche: detectedNiche,
         verified: profileData.is_verified || false,
       };
@@ -257,7 +287,7 @@ export class BrightDataProvider implements InstagramProvider {
 
   private async saveProfileToDb(
     profile: CoachProfile,
-    relatedAccounts?: RelatedAccount[]
+    relatedAccounts?: RelatedAccount[],
   ) {
     try {
       const { db } = await import('@/lib/db');
@@ -315,7 +345,7 @@ export class BrightDataProvider implements InstagramProvider {
    * Map related account to CoachProfile
    */
   private mapRelatedAccountToProfile(
-    relatedAccount: RelatedAccount
+    relatedAccount: RelatedAccount,
   ): CoachProfile | null {
     // Skip private accounts
     if (relatedAccount.is_private) {
@@ -391,7 +421,7 @@ export class BrightDataProvider implements InstagramProvider {
           body: JSON.stringify({
             input: [{ user_name: username }],
           }),
-        }
+        },
       );
 
       // Read response text first (can only read once)
@@ -464,7 +494,7 @@ export class BrightDataProvider implements InstagramProvider {
         console.warn(
           `Unexpected response format for ${username}:`,
           typeof responseData,
-          Object.keys(responseData || {})
+          Object.keys(responseData || {}),
         );
         return { profile: null, relatedAccounts: [] };
       }
@@ -487,15 +517,15 @@ export class BrightDataProvider implements InstagramProvider {
       // Map Bright Data response to CoachProfile
       const detectedNiche = detectNicheFromBio(
         profileData.biography,
-        profileData.full_name
+        profileData.full_name,
       );
 
       // Extract profile image URL (may be obfuscated in response)
       let profilePicUrl: string | undefined;
       if (profileData.profile_image_link) {
-        profilePicUrl = profileData.profile_image_link.replace(/\*/g, '');
-        if (!profilePicUrl.startsWith('http')) {
-          profilePicUrl = undefined;
+        const tempUrl = profileData.profile_image_link.replace(/\*/g, '');
+        if (tempUrl.startsWith('http')) {
+          profilePicUrl = tempUrl;
         }
       }
 
@@ -504,11 +534,39 @@ export class BrightDataProvider implements InstagramProvider {
         ? profileData.account.replace(/\*/g, '')
         : username;
 
+      // Upload profile picture to Supabase Storage for permanent URL
+      let permanentProfilePicUrl: string | undefined;
+      if (profilePicUrl) {
+        try {
+          const uploadedUrl = await uploadProfilePicture(
+            profilePicUrl,
+            extractedUsername,
+          );
+          if (uploadedUrl) {
+            permanentProfilePicUrl = uploadedUrl;
+            console.log(
+              `Uploaded profile picture for ${extractedUsername} to Supabase Storage`,
+            );
+          } else {
+            permanentProfilePicUrl = profilePicUrl;
+            console.warn(
+              `Failed to upload profile picture for ${extractedUsername}, using original URL`,
+            );
+          }
+        } catch (error) {
+          console.error(
+            `Error uploading profile picture for ${extractedUsername}:`,
+            error,
+          );
+          permanentProfilePicUrl = profilePicUrl;
+        }
+      }
+
       const mainProfile: CoachProfile = {
         id: profileData.id || username,
         username: extractedUsername || username,
         fullName: profileData.full_name,
-        profilePicture: profilePicUrl || '',
+        profilePicture: permanentProfilePicUrl || '',
         bio: profileData.biography,
         biography: profileData.biography,
         externalUrls: profileData.external_url?.[0],
@@ -517,7 +575,7 @@ export class BrightDataProvider implements InstagramProvider {
         postsCount: profileData.posts_count || 0,
         isBusinessAccount: profileData.is_business_account || false,
         isProfessionalAccount: profileData.is_professional_account || false,
-        profilePicUrl: profilePicUrl,
+        profilePicUrl: permanentProfilePicUrl,
         niche: detectedNiche,
         verified: profileData.is_verified || false,
       };
@@ -582,9 +640,8 @@ export class BrightDataProvider implements InstagramProvider {
       if (processedUsernames.has(username)) continue;
 
       try {
-        const { profile, relatedAccounts } = await this.fetchProfileWithRelated(
-          username
-        );
+        const { profile, relatedAccounts } =
+          await this.fetchProfileWithRelated(username);
 
         // Add main profile
         if (profile) {
@@ -687,7 +744,7 @@ export class BrightDataProvider implements InstagramProvider {
               profile.lastFetched > sixMonthsAgo
             ) {
               console.log(
-                `Using cached profile for ${username} (batch preload)`
+                `Using cached profile for ${username} (batch preload)`,
               );
               cachedProfiles.push(this.mapDbProfileToCoachProfile(profile));
             } else {
@@ -707,7 +764,7 @@ export class BrightDataProvider implements InstagramProvider {
       }
 
       console.log(
-        `Triggering batch fetch for ${urlsToFetch.length} profiles (${cachedProfiles.length} cached)`
+        `Triggering batch fetch for ${urlsToFetch.length} profiles (${cachedProfiles.length} cached)`,
       );
 
       // Format URLs for Bright Data API
@@ -753,7 +810,7 @@ export class BrightDataProvider implements InstagramProvider {
             'Content-Type': 'application/json',
           },
           body: data,
-        }
+        },
       );
 
       // console.log('Response:', response);
@@ -816,7 +873,7 @@ export class BrightDataProvider implements InstagramProvider {
           headers: {
             Authorization: `Bearer ${this.apiKey}`,
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -856,7 +913,7 @@ export class BrightDataProvider implements InstagramProvider {
           headers: {
             Authorization: `Bearer ${this.apiKey}`,
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -896,7 +953,7 @@ export class BrightDataProvider implements InstagramProvider {
         // Map to CoachProfile
         const detectedNiche = detectNicheFromBio(
           profileData.biography,
-          profileData.full_name
+          profileData.full_name,
         );
 
         let profilePicUrl: string | undefined;
