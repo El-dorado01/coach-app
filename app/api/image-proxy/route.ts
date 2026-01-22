@@ -10,7 +10,10 @@ export async function GET(request: NextRequest) {
     const imageUrl = searchParams.get('url');
 
     if (!imageUrl) {
-      return NextResponse.json({ error: 'URL parameter is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'URL parameter is required' },
+        { status: 400 },
+      );
     }
 
     // Validate that it's an Instagram/Facebook CDN URL
@@ -18,33 +21,41 @@ export async function GET(request: NextRequest) {
       'cdninstagram.com',
       'fbcdn.net',
       'instagram.com',
+      'supabase.co',
     ];
 
     const url = new URL(imageUrl);
-    const isAllowed = allowedDomains.some((domain) => url.hostname.includes(domain));
+    const isAllowed = allowedDomains.some((domain) =>
+      url.hostname.includes(domain),
+    );
 
     if (!isAllowed) {
-      return NextResponse.json({ error: 'Invalid image source' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Invalid image source' },
+        { status: 400 },
+      );
     }
 
     // Fetch the image from Instagram CDN
     const imageResponse = await fetch(imageUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Referer': 'https://www.instagram.com/',
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        Referer: 'https://www.instagram.com/',
       },
     });
 
     if (!imageResponse.ok) {
       return NextResponse.json(
         { error: 'Failed to fetch image' },
-        { status: imageResponse.status }
+        { status: imageResponse.status },
       );
     }
 
     // Get the image data
     const imageBuffer = await imageResponse.arrayBuffer();
-    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+    const contentType =
+      imageResponse.headers.get('content-type') || 'image/jpeg';
 
     // Return the image with proper headers
     return new NextResponse(imageBuffer, {
@@ -59,8 +70,7 @@ export async function GET(request: NextRequest) {
     console.error('Error proxying image:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

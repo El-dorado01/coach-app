@@ -19,7 +19,7 @@ export default function DashboardHeader({
   return (
     <div className='relative overflow-hidden mb-10'>
       {/* Subtle gradient background */}
-      <div className='absolute inset-0 bg-linear-to-br from-primary/10 via-transparent to-accent/5' />
+      <div className='absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/5' />
 
       <div className='relative p-8 md:p-12'>
         <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8'>

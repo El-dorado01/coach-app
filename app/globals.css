@@ -6,7 +6,7 @@
   :root {
     --radius: 0.65rem;
     /* Standard Light Theme - Neutral */
-    --background: 1 0 0; /* White in oklch */
+    --background: 0.985 0 0; /* Slightly off-white to contrast with pure white elements if any, or sidebar */
     --foreground: 0.145 0 0; /* Dark text */
     --card: 1 0 0; /* White */
     --card-foreground: 0.145 0 0;

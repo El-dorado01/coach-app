@@ -74,28 +74,37 @@ export class BrightDataProvider implements InstagramProvider {
       const { db } = await import('@/lib/db');
 
       // 1. Check Database first
-      const existingProfile = await db.coachProfile.findUnique({
-        where: { username },
-        include: { relatedProfiles: true },
-      });
+      try {
+        const existingProfile = await db.coachProfile.findUnique({
+          where: { username },
+          include: { relatedProfiles: true },
+        });
 
-      // 2. Check if data is fresh (< 6 months old) and NOT partial
-      if (existingProfile) {
-        // If profile is partial, we treat it as missing/stale because we need full data
-        if (existingProfile.isPartial) {
-          console.log(
-            `Cached profile for ${username} is partial, fetching full data...`,
-          );
-        } else {
-          const sixMonthsAgo = new Date();
-          sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        // 2. Check if data is fresh (< 6 months old) and NOT partial
+        if (existingProfile) {
+          // If profile is partial, we treat it as missing/stale because we need full data
+          if (existingProfile.isPartial) {
+            console.log(
+              `Cached profile for ${username} is partial, fetching full data...`,
+            );
+          } else {
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-          if (existingProfile.lastFetched > sixMonthsAgo) {
-            console.log(`Using cached profile for ${username}`);
-            return this.mapDbProfileToCoachProfile(existingProfile);
+            if (existingProfile.lastFetched > sixMonthsAgo) {
+              console.log(`Using cached profile for ${username}`);
+              return this.mapDbProfileToCoachProfile(existingProfile);
+            }
+            console.log(
+              `Cached profile for ${username} is stale, refreshing...`,
+            );
           }
-          console.log(`Cached profile for ${username} is stale, refreshing...`);
         }
+      } catch (dbError) {
+        console.error(
+          `DB Error checking cache for ${username} (continuing to fetch):`,
+          dbError,
+        );
       }
 
       // 3. Fetch from API if missing or stale
@@ -727,30 +736,40 @@ export class BrightDataProvider implements InstagramProvider {
       }
 
       if (usernamesToCheck.length > 0) {
-        const dbProfiles = await db.coachProfile.findMany({
-          where: {
-            username: { in: usernamesToCheck },
-          },
-        });
+        try {
+          const dbProfiles = await db.coachProfile.findMany({
+            where: {
+              username: { in: usernamesToCheck },
+            },
+          });
 
-        for (const url of urls) {
-          const username = urlToUsernameMap.get(url);
-          if (username) {
-            const profile = dbProfiles.find((p) => p.username === username);
-            // Check freshness and partial status
-            if (
-              profile &&
-              !profile.isPartial &&
-              profile.lastFetched > sixMonthsAgo
-            ) {
-              console.log(
-                `Using cached profile for ${username} (batch preload)`,
-              );
-              cachedProfiles.push(this.mapDbProfileToCoachProfile(profile));
-            } else {
-              urlsToFetch.push(url);
+          for (const url of urls) {
+            const username = urlToUsernameMap.get(url);
+            if (username) {
+              const profile = dbProfiles.find((p) => p.username === username);
+              // Check freshness and partial status
+              if (
+                profile &&
+                !profile.isPartial &&
+                profile.lastFetched > sixMonthsAgo
+              ) {
+                console.log(
+                  `Using cached profile for ${username} (batch preload)`,
+                );
+                cachedProfiles.push(this.mapDbProfileToCoachProfile(profile));
+              } else {
+                urlsToFetch.push(url);
+              }
             }
           }
+        } catch (dbError) {
+          console.error(
+            'Failed to check DB cache for batch (proceeding with API fetch):',
+            dbError,
+          );
+          // Fallback: fetch everything from API if DB check fails
+          urlsToFetch.length = 0; // Clear potentially partial list
+          urlsToFetch.push(...urls);
         }
       } else {
         // Fallback if extraction failed
