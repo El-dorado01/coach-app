@@ -5,11 +5,13 @@ import { BookOpen, DownloadIcon } from 'lucide-react';
 
 interface DashboardHeaderProps {
   totalResults: number;
+  totalFiltered: number;
   filteredResults: CoachProfile[];
 }
 
 export default function DashboardHeader({
   totalResults,
+  totalFiltered,
   filteredResults,
 }: DashboardHeaderProps) {
   const handleExport = () => {
@@ -34,7 +36,7 @@ export default function DashboardHeader({
             <p className='mt-2 text-sm text-foreground/60'>
               Showing{' '}
               <span className='font-semibold text-primary'>
-                {filteredResults.length.toLocaleString()}
+                {(totalFiltered || 0).toLocaleString()}
               </span>{' '}
               filtered results
             </p>
@@ -49,7 +51,7 @@ export default function DashboardHeader({
               <BookOpen className='mr-1 size-5' />
               <span className='flex items-center gap-2'>
                 <span className='text-xl font-bold text-foreground'>
-                  {filteredResults.length}
+                  {totalFiltered}
                 </span>
                 <span className='text-sm text-foreground/60'>
                   Active results

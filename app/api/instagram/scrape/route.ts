@@ -21,6 +21,21 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // Check if profile exists and was fetched within the last 6 months (180 days)
+        const existingCoach = await prisma.coachProfile.findUnique({
+            where: { username: username.toLowerCase() },
+        });
+
+        if (existingCoach && existingCoach.lastFetched) {
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setDate(sixMonthsAgo.getDate() - 180);
+
+            if (existingCoach.lastFetched > sixMonthsAgo) {
+                console.log(`Using cached data for @${username} (fetched within 6 months)`);
+                return NextResponse.json(existingCoach);
+            }
+        }
+
         // Fetch profile from Instagram
         const provider = getInstagramProvider();
         const profileData = await provider.fetchProfile(username);
