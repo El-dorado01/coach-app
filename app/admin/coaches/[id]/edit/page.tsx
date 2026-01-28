@@ -7,8 +7,9 @@ import CoachForm from '@/components/admin/CoachForm';
 export default async function EditCoachPage({
     params,
 }: {
-    params: { id: string };
+    params: Promise<{ id: string }>;
 }) {
+    const { id } = await params;
     const admin = await isAdmin();
 
     if (!admin) {
@@ -16,7 +17,7 @@ export default async function EditCoachPage({
     }
 
     const coach = await prisma.coachProfile.findUnique({
-        where: { id: params.id },
+        where: { id },
     });
 
     if (!coach) {

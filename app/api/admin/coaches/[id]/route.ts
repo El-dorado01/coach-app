@@ -32,13 +32,14 @@ const coachSchema = z.object({
 // GET /api/admin/coaches/[id] - Get a single coach
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await requireAdmin();
 
     const coach = await prisma.coachProfile.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!coach) {
@@ -58,16 +59,17 @@ export async function GET(
 // PUT /api/admin/coaches/[id] - Update a coach
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await requireAdmin();
 
     const body = await request.json();
     const validatedData = coachSchema.parse(body);
 
     const coach = await prisma.coachProfile.update({
-      where: { id: params.id },
+      where: { id },
       data: validatedData,
     });
 
@@ -91,13 +93,14 @@ export async function PUT(
 // DELETE /api/admin/coaches/[id] - Delete a coach
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await requireAdmin();
 
     await prisma.coachProfile.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });
