@@ -38,6 +38,11 @@ export default function CoachesTable({
   const [coaches, setCoaches] = useState<CoachProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     fetchCoaches();
@@ -59,7 +64,7 @@ export default function CoachesTable({
       }
 
       const data = await response.json();
-      setCoaches(data.coaches);
+      setCoaches(data.coaches || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
       toast.error('Failed to load coaches');
@@ -88,6 +93,14 @@ export default function CoachesTable({
       toast.error('Failed to delete coach');
     }
   };
+
+  if (!mounted) {
+    return (
+      <div className='flex items-center justify-center py-8'>
+        <div className='text-gray-500 animate-pulse'>Initialize table...</div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -147,7 +160,7 @@ export default function CoachesTable({
                   <Badge variant='secondary'>{coach.niche}</Badge>
                 )}
               </TableCell>
-              <TableCell>{coach.followersCount.toLocaleString()}</TableCell>
+              <TableCell>{(coach.followersCount ?? 0).toLocaleString()}</TableCell>
               <TableCell>
                 {coach.verified ? (
                   <Badge variant='default'>Verified</Badge>
