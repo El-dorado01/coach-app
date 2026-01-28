@@ -119,19 +119,19 @@ export default async function CoachViewPage({
                             <div className='grid grid-cols-3 gap-4 text-center'>
                                 <div>
                                     <p className='text-2xl font-bold text-blue-600'>
-                                        {coach.followersCount.toLocaleString()}
+                                        {Number(coach.followersCount || 0).toLocaleString()}
                                     </p>
                                     <p className='text-sm text-gray-500'>Followers</p>
                                 </div>
                                 <div>
                                     <p className='text-2xl font-bold text-green-600'>
-                                        {coach.followsCount.toLocaleString()}
+                                        {Number(coach.followsCount || 0).toLocaleString()}
                                     </p>
                                     <p className='text-sm text-gray-500'>Following</p>
                                 </div>
                                 <div>
                                     <p className='text-2xl font-bold text-purple-600'>
-                                        {coach.postsCount.toLocaleString()}
+                                        {Number(coach.postsCount || 0).toLocaleString()}
                                     </p>
                                     <p className='text-sm text-gray-500'>Posts</p>
                                 </div>

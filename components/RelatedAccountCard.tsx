@@ -19,7 +19,12 @@ export default function RelatedAccountCard({ profile }: RelatedAccountCardProps)
       'bg-purple-500',
       'bg-rose-500',
     ];
-    const index = parseInt(id) % colors.length;
+    // Create a stable index based on the string ID
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
     return colors[index];
   };
 
@@ -58,9 +63,8 @@ export default function RelatedAccountCard({ profile }: RelatedAccountCardProps)
                 />
               ) : null}
               <div
-                className={`${avatarColor} text-sm font-bold transition-transform group-hover:scale-105 h-full w-full flex items-center justify-center text-white ${
-                  profilePicUrl ? 'hidden' : 'flex'
-                }`}
+                className={`${avatarColor} text-sm font-bold transition-transform group-hover:scale-105 h-full w-full flex items-center justify-center text-white ${profilePicUrl ? 'hidden' : 'flex'
+                  }`}
               >
                 {profile.username.charAt(0).toUpperCase()}
               </div>
